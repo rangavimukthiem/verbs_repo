@@ -3,6 +3,8 @@ import 'package:excel/excel.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
 class DictationsScreen extends StatefulWidget {
+  const DictationsScreen({super.key});
+
   @override
   _DictationsScreenState createState() => _DictationsScreenState();
 }
