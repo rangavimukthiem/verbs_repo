@@ -1,13 +1,15 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
-class DailyNotification {
+class HourlyNotification {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  Duration delayDuration = const Duration(minutes: 1);
 
-  DailyNotification() {
+  HourlyNotification() {
     _initializeNotifications();
   }
 
@@ -22,23 +24,36 @@ class DailyNotification {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  Future<void> scheduleDailyNotification() async {
+  void setDelayDuration(Duration duration) {
+    var delayDuration = duration;
+  }
+
+  Future<void> scheduleHourlyNotification() async {
     var verbs = await _loadExcelData();
     if (verbs.isNotEmpty) {
       var randomVerb = _getRandomVerb(verbs);
 
       await _showNotification(randomVerb);
     }
+
+    // Schedule this function to run again after 1 hour
+    await Future.delayed(delayDuration, scheduleHourlyNotification);
   }
 
   Future<void> _showNotification(Map<String, String> verb) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'daily_verb_channel', // Channel ID
-      'Daily Verb', // Channel Name
-      channelDescription: 'Notification channel for daily verb',
+      'hourly_verb_channel', // Channel ID
+      'Hourly Verb', // Channel Name
+      channelDescription: 'Notification channel for hourly verb',
       importance: Importance.high,
       priority: Priority.high,
+      playSound: true,
+      color: Colors.cyan,
+      ongoing: true,
+      autoCancel: false,
+      chronometerCountDown: true,
+      colorized: true,
     );
 
     const NotificationDetails platformChannelSpecifics =
@@ -46,10 +61,10 @@ class DailyNotification {
 
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
-      'Daily Verb ${verb['base form in Sinhala']}', // Notification Title
-      ' ${verb['base form in English']}  ${verb['past form in English']}  ${verb['past participle form in English']}', // Notification Body
+      'Hourly Verb: ${verb['base form in Sinhala']}',
+      '${verb['base form in English']} - ${verb['past form in English']} - ${verb['past participle form in English']}\n',
       platformChannelSpecifics,
-      payload: 'Daily Verb Notification',
+      payload: 'Hourly Verb Notification',
     );
   }
 

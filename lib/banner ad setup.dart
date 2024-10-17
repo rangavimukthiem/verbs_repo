@@ -1,3 +1,4 @@
+// ignore: file_names
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -5,10 +6,10 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
 
   @override
-  _BannerAdWidgetState createState() => _BannerAdWidgetState();
+  BannerAdWidgetState createState() => BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
 
@@ -28,7 +29,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          print('Ad failed to load: ${error.message}');
+          // print('Ad failed to load: ${error.message}');
         },
       ),
     )..load();

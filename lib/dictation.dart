@@ -6,10 +6,10 @@ class DictationsScreen extends StatefulWidget {
   const DictationsScreen({super.key});
 
   @override
-  _DictationsScreenState createState() => _DictationsScreenState();
+  DictationsScreenState createState() => DictationsScreenState();
 }
 
-class _DictationsScreenState extends State<DictationsScreen> {
+class DictationsScreenState extends State<DictationsScreen> {
   List<Map<String, String>> dictations = [];
 
   @override
@@ -52,7 +52,7 @@ class _DictationsScreenState extends State<DictationsScreen> {
         itemBuilder: (context, index) {
           final dictation = dictations[index];
           return ListTile(
-            leading: const Icon(Icons.api_sharp),
+            leading: Text((index + 1).toString()),
             title: Text(
               dictation['english'] ?? '',
               style: const TextStyle(fontSize: 20.0, color: Colors.blue),

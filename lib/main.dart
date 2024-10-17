@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
@@ -7,14 +9,15 @@ import 'dictation.dart';
 import 'daily_notification.dart';
 
 void main() {
-  //  mobile ads initialized
+  // Mobile ads initialization
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  // daily notification initialized
-  DailyNotification dailyNotification = DailyNotification();
-  dailyNotification.scheduleDailyNotification();
-  // Schedule the daily notification
-  runApp(const IrregularVerbsApp());
+
+  // Daily notification initialization
+  HourlyNotification hourlyNotification = HourlyNotification();
+  hourlyNotification.scheduleHourlyNotification();
+
+  runApp(IrregularVerbsApp());
 }
 
 class IrregularVerbsApp extends StatelessWidget {
@@ -23,10 +26,10 @@ class IrregularVerbsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Irregular Verbs',
+      title: 'Verbs',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue, // Primary color for the app
+        primarySwatch: Colors.blue,
         textTheme: const TextTheme(
           bodySmall: TextStyle(
             color: Colors.deepOrange,
@@ -42,13 +45,30 @@ class IrregularVerbsApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late HourlyNotification hourlyNotification =
+      HourlyNotification(); // Create instance
+  double delayMinutes = 1; // Variable to hold delay minutes
+
+  void _updateDelay(double newValue) {
+    setState(() {
+      delayMinutes = newValue; // Update the slider value
+    });
+    // You can add additional code here if needed to handle the delay change
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,40 +78,56 @@ class HomeScreen extends StatelessWidget {
         child: Scaffold(
           appBar: AppBar(
             title: const Text(
-              'Irregular Verbs Sinhala',
+              'Verbs',
               style: TextStyle(
-                fontSize: 25, // Font size for the title
+                fontSize: 25,
                 fontWeight: FontWeight.w800,
-                color: Colors.white, // Font weight for the title
+                color: Colors.white,
               ),
             ),
-            backgroundColor:
-                Colors.blueAccent, // Background color of the AppBar
-            elevation: 5, // Shadow effect of the AppBar
+            backgroundColor: Colors.blueAccent,
+            elevation: 5,
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(48.0),
               child: Container(
-                color: const Color.fromARGB(
-                    255, 86, 134, 158), // Background color of the TabBar
+                color: const Color.fromARGB(255, 86, 134, 158),
                 child: TabBar(
                   tabs: const [
                     Tab(text: 'Home'),
                     Tab(text: 'Dictations'),
                   ],
-                  indicatorColor: Colors.white, // Color of the tab indicator
-                  labelColor: Colors.white, // Color of the selected tab text
-                  unselectedLabelColor:
-                      Colors.grey[300], // Color of the unselected tab text
-                  indicatorWeight: 4.0, // Thickness of the indicator line
+                  indicatorColor: Colors.white,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey[300],
+                  indicatorWeight: 4.0,
                 ),
               ),
             ),
+            actions: [
+              // Slider for delay control
+              Padding(
+                padding: EdgeInsets.only(top: 25),
+                child: SizedBox(
+                  width: 100,
+                  child: Slider(
+                    value: delayMinutes,
+                    min: 1,
+                    max: 60,
+                    divisions: 59,
+                    label: '${delayMinutes.round()} min',
+                    onChanged: (newValue) {
+                      _updateDelay(newValue);
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
-          bottomNavigationBar: BottomAppBar(
+          bottomNavigationBar: const BottomAppBar(
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Align(
                 alignment: Alignment.bottomCenter,
-                child: BannerAdWidget(), // Your BannerAdWidget
+                child: BannerAdWidget(), // BannerAdWidget instance
               ),
             ]),
           ),
@@ -101,17 +137,16 @@ class HomeScreen extends StatelessWidget {
               children: <Widget>[
                 const DrawerHeader(
                   decoration: BoxDecoration(
-                    color: Colors
-                        .blueAccent, // Background color of the DrawerHeader
+                    color: Colors.blueAccent,
                   ),
                   child: Row(
                     children: [
                       CircleAvatar(
-                        radius: 30, // Radius of the avatar
-                        backgroundImage: AssetImage(
-                            'assets/logo.png'), // Replace with your image asset
+                        radius: 30,
+                        backgroundImage:
+                            AssetImage('assets/logo.png'), // Image asset
                       ),
-                      SizedBox(width: 16), // Space between avatar and text
+                      SizedBox(width: 16),
                       Text(
                         'EK AppZone',
                         style: TextStyle(
@@ -125,47 +160,41 @@ class HomeScreen extends StatelessWidget {
                 ),
                 ListTile(
                   title: const Text(
-                    "EK App Zone is a forward-thinking company based in Kotmale, Sri Lanka, dedicated to delivering innovative app solutions. Our expertise lies in creating cutting-edge applications that cater to the evolving needs of businesses and individuals. We combine technology with creativity to offer products that enhance efficiency, connectivity, and user experience.",
+                    "EK App Zone is a forward-thinking digital solution company in Sri Lanka...",
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   onTap: () {
-                    // Handle item 1 tap
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.email),
                   title: const Text('Ekappzone@gmail.com'),
                   onTap: () {
-                    // Handle item 2 tap
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.phone),
                   title: const Text('+94782694957'),
                   onTap: () {
-                    // Handle item 2 tap
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.location_city),
-                  title: const Text("Nuwaraeliya,Srilanka"),
+                  title: const Text("Nuwaraeliya, Sri Lanka"),
                   onTap: () {
-                    // Handle item 2 tap
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                   },
                 ),
-                // Add more ListTile items as needed
               ],
             ),
           ),
-          body: TabBarView(
+          body: const TabBarView(
             children: [
-              const VerbListScreen(),
-              DictationsScreen(), // Home tab
-              // Center(child: Text('Dictations Tab Content')), // Dictations tab
+              VerbListScreen(),
+              DictationsScreen(),
             ],
           ),
         ),
@@ -178,10 +207,10 @@ class VerbListScreen extends StatefulWidget {
   const VerbListScreen({super.key});
 
   @override
-  _VerbListScreenState createState() => _VerbListScreenState();
+  VerbListScreenState createState() => VerbListScreenState();
 }
 
-class _VerbListScreenState extends State<VerbListScreen> {
+class VerbListScreenState extends State<VerbListScreen> {
   List<Map<String, String>> verbs = [];
   List<Map<String, String>> filteredVerbs = [];
   TextEditingController searchController = TextEditingController();
@@ -194,7 +223,6 @@ class _VerbListScreenState extends State<VerbListScreen> {
   }
 
   Future<void> _loadExcelData() async {
-    // Load the Excel file from assets
     ByteData data = await rootBundle.load('assets/irregular_verbs.xlsx');
     var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     var excel = Excel.decodeBytes(bytes);
@@ -252,56 +280,56 @@ class _VerbListScreenState extends State<VerbListScreen> {
                     itemBuilder: (context, index) {
                       final verb = filteredVerbs[index];
                       return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 verb['base form in English'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.start,
                               ),
                               Text(
                                 verb['past form in English'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.center,
                               ),
                               Text(
                                 verb['past participle form in English'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.right,
                               ),
                             ],
                           ),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 verb['base form in Sinhala'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.start,
                               ),
                               Text(
                                 verb['past form in Sinhala'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.center,
                               ),
                               Text(
                                 verb['past participle form in Sinhala'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.right,
                               ),
                             ],
                           ),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 verb['base note'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.start,
                               ),
                               Text(
                                 verb['past note'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.center,
                               ),
                               Text(
                                 verb['past participle note'] ?? '',
-                                textAlign: TextAlign.justify,
+                                textAlign: TextAlign.right,
                               ),
                             ],
                           ),
