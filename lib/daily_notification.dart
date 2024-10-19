@@ -7,7 +7,7 @@ import 'package:flutter/services.dart' show ByteData, rootBundle;
 class HourlyNotification {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-  Duration delayDuration = const Duration(minutes: 1);
+  Duration delayDuration = const Duration(minutes: 10);
 
   HourlyNotification() {
     _initializeNotifications();
@@ -24,9 +24,7 @@ class HourlyNotification {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  void setDelayDuration(Duration duration) {
-    var delayDuration = duration;
-  }
+  void setDelayDuration(Duration duration) {}
 
   Future<void> scheduleHourlyNotification() async {
     var verbs = await _loadExcelData();
@@ -62,7 +60,7 @@ class HourlyNotification {
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
       'Hourly Verb: ${verb['base form in Sinhala']}',
-      '${verb['base form in English']} - ${verb['past form in English']} - ${verb['past participle form in English']}\n',
+      '${verb['base form in English']} - ${verb['past form in English']} - ${verb['past participle form in English']}\nMy name is Ranga',
       platformChannelSpecifics,
       payload: 'Hourly Verb Notification',
     );

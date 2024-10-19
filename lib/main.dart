@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'banner ad setup.dart';
 import 'dictation.dart';
 import 'daily_notification.dart';
+import "package:verbs/mail_url_opener.dart";
 
 void main() {
   // Mobile ads initialization
@@ -26,7 +28,7 @@ class IrregularVerbsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Verbs',
+      title: 'Verbs Finder',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -78,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text(
-              'Verbs',
+              'Let\'s Learn English',
               style: TextStyle(
                 fontSize: 25,
                 fontWeight: FontWeight.w800,
@@ -90,10 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(48.0),
               child: Container(
-                color: const Color.fromARGB(255, 86, 134, 158),
+                color: const Color.fromARGB(255, 46, 175, 239),
                 child: TabBar(
                   tabs: const [
-                    Tab(text: 'Home'),
+                    Tab(text: 'Verbs'),
                     Tab(text: 'Dictations'),
                   ],
                   indicatorColor: Colors.white,
@@ -103,25 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            actions: [
-              // Slider for delay control
-              Padding(
-                padding: EdgeInsets.only(top: 25),
-                child: SizedBox(
-                  width: 100,
-                  child: Slider(
-                    value: delayMinutes,
-                    min: 1,
-                    max: 60,
-                    divisions: 59,
-                    label: '${delayMinutes.round()} min',
-                    onChanged: (newValue) {
-                      _updateDelay(newValue);
-                    },
-                  ),
-                ),
-              ),
-            ],
           ),
           bottomNavigationBar: const BottomAppBar(
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -170,6 +153,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 ListTile(
                   leading: const Icon(Icons.email),
                   title: const Text('Ekappzone@gmail.com'),
+                  onTap: () async {
+                    final Uri emailLaunchUri = Uri(
+                      scheme: 'mailto',
+                      path: 'ekappzone@gmail.com',
+                      query: encodeQueryParameters(
+                        {'subject': 'Contact from EK App Zone'},
+                      ),
+                    );
+
+                    try {
+                      // Check if the email client can be launched
+                      if (await launchUrl(emailLaunchUri)) {
+                        // Launch the email client
+                        await launchUrl(emailLaunchUri);
+                      } else {
+                        throw 'Could not launch $emailLaunchUri';
+                      }
+                    } catch (e) {
+                      // Handle the error (optional: you might want to show a dialog or a snackbar)
+                      print(e.toString());
+                    }
+
+                    // Close the drawer
+                    Navigator.pop(context);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.location_city),
+                  title: const Text("Nuwaraeliya, Sri Lanka"),
                   onTap: () {
                     Navigator.pop(context);
                   },
@@ -181,13 +193,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.pop(context);
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.location_city),
-                  title: const Text("Nuwaraeliya, Sri Lanka"),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        "Notification Settings",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Slider(
+                        value: delayMinutes,
+                        thumbColor: const Color.fromARGB(255, 3, 31, 80),
+                        min: 1,
+                        max: 480,
+                        divisions: 480,
+                        label: '${delayMinutes.round()} min',
+                        onChanged: (newValue) {
+                          _updateDelay(newValue);
+                        },
+                      ),
+                    ],
+                  ),
+                )
               ],
             ),
           ),
@@ -259,22 +288,64 @@ class VerbListScreenState extends State<VerbListScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(4.0),
       child: Column(
         children: [
           TextField(
+            // search bar here
             controller: searchController,
             decoration: InputDecoration(
+              filled: true, // Adds a background color
+              fillColor:
+                  Colors.lightBlue[50], // Background color of the TextField
               hintText: 'Search for a verb...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
+              hintStyle: TextStyle(
+                color: Colors.grey[600], // Color of the hint text
+                fontSize: 16.0, // Size of the hint text
+                fontStyle: FontStyle.italic, // Italic hint text
               ),
-              prefixIcon: const Icon(Icons.search),
+              contentPadding: const EdgeInsets.symmetric(
+                  vertical: 5.0,
+                  horizontal: 5.0), // Padding inside the text field
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0), // Rounded border
+                borderSide: BorderSide(
+                  color: Colors.blue, // Border color
+                  width: 2.0, // Border thickness
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors
+                      .blueAccent, // Border color when the text field is not focused
+                  width: 2.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+                borderSide: BorderSide(
+                  color: Colors
+                      .blue, // Border color when the text field is focused
+                  width: 2.5,
+                ),
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Colors.blue, // Color of the search icon
+              ),
+            ),
+            style: const TextStyle(
+              color: Colors.black, // Color of the input text
+              fontSize: 18.0, // Font size of the input text
             ),
           ),
           Expanded(
             child: filteredVerbs.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                    semanticsLabel: "No verbs available try to update app",
+                  ))
                 : ListView.builder(
                     itemCount: filteredVerbs.length,
                     itemBuilder: (context, index) {
