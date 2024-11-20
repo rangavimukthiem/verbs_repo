@@ -44,7 +44,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
             height: _bannerAd!.size.height.toDouble(),
             child: AdWidget(ad: _bannerAd!),
           )
-        : const SizedBox.shrink();
+        : const SizedBox.expand();
   }
 
   @override
