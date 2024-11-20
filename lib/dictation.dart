@@ -12,7 +12,7 @@ class DictationsScreen extends StatefulWidget {
 class DictationsScreenState extends State<DictationsScreen> {
   List<Map<String, String>> dictations = [];
   List<Map<String, String>> filteredDictations = [];
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {

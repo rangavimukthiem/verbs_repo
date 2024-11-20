@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
@@ -9,15 +9,19 @@ import 'banner ad setup.dart';
 import 'dictation.dart';
 import 'daily_notification.dart';
 import "package:verbs/mail_url_opener.dart";
+// ------bg serice
+
+import 'dart:async';
 
 void main() {
   // Mobile ads initialization
+  double delayMinutes = 2.0;
+  bool isBackgroundServiceOn = true;
+
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-
-  // Daily notification initialization
-  HourlyNotification hourlyNotification = HourlyNotification();
-  hourlyNotification.scheduleHourlyNotification();
+  setupNotificationChannel();
+  initNotifications(delayMinutes, isBackgroundServiceOn);
 
   runApp(IrregularVerbsApp());
 }
@@ -61,11 +65,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late HourlyNotification hourlyNotification =
-      HourlyNotification(); // Create instance
-  double delayMinutes = 1; // Variable to hold delay minutes
+  // Create instance
 
-  void _updateDelay(double newValue) {
+  final InterstitialAdHandler interstitialAdManager = InterstitialAdHandler();
+  final GlobalKey<InterstitialAdHandlerState> adHandlerKey =
+      GlobalKey<InterstitialAdHandlerState>();
+  bool adTrigger = false;
+  bool isBackgroundServiceOn = false;
+
+  // Variable to hold delay minutes
+
+  // Define a GlobalKey
+
+  void updateDelay(double newValue) {
     setState(() {
       delayMinutes = newValue; // Update the slider value
     });
@@ -74,161 +86,200 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2, // Number of tabs
-      child: SafeArea(
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text(
-              'Let\'s Learn English',
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: Colors.blueAccent,
-            elevation: 5,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48.0),
-              child: Container(
-                color: const Color.fromARGB(255, 46, 175, 239),
-                child: TabBar(
-                  tabs: const [
-                    Tab(text: 'Verbs'),
-                    Tab(text: 'Dictations'),
-                  ],
-                  indicatorColor: Colors.white,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey[300],
-                  indicatorWeight: 4.0,
-                ),
-              ),
-            ),
-          ),
-          bottomNavigationBar: const BottomAppBar(
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: BannerAdWidget(), // BannerAdWidget instance
-              ),
-            ]),
-          ),
-          drawer: Drawer(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: <Widget>[
-                const DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundImage:
-                            AssetImage('assets/logo.png'), // Image asset
-                      ),
-                      SizedBox(width: 16),
-                      Text(
-                        'EK AppZone',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ListTile(
-                  title: const Text(
-                    "EK App Zone is a forward-thinking digital solution company in Sri Lanka...",
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.email),
-                  title: const Text('Ekappzone@gmail.com'),
-                  onTap: () async {
-                    final Uri emailLaunchUri = Uri(
-                      scheme: 'mailto',
-                      path: 'ekappzone@gmail.com',
-                      query: encodeQueryParameters(
-                        {'subject': 'Contact from EK App Zone'},
-                      ),
-                    );
-
-                    try {
-                      // Check if the email client can be launched
-                      if (await launchUrl(emailLaunchUri)) {
-                        // Launch the email client
-                        await launchUrl(emailLaunchUri);
-                      } else {
-                        throw 'Could not launch $emailLaunchUri';
-                      }
-                    } catch (e) {
-                      // Handle the error (optional: you might want to show a dialog or a snackbar)
-                      print(e.toString());
-                    }
-
-                    // Close the drawer
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.location_city),
-                  title: const Text("Nuwaraeliya, Sri Lanka"),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.phone),
-                  title: const Text('+94782694957'),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        "Notification Settings",
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      Slider(
-                        value: delayMinutes,
-                        thumbColor: const Color.fromARGB(255, 3, 31, 80),
-                        min: 1,
-                        max: 480,
-                        divisions: 480,
-                        label: '${delayMinutes.round()} min',
-                        onChanged: (newValue) {
-                          _updateDelay(newValue);
-                        },
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
-          ),
-          body: const TabBarView(
-            children: [
-              VerbListScreen(),
-              DictationsScreen(),
-            ],
-          ),
+    return Stack(children: [
+      Visibility(
+        visible: adTrigger,
+        child: InterstitialAdHandler(
+          key: adHandlerKey,
         ),
       ),
-    );
+      DefaultTabController(
+          length:
+              2, // Number of tabs  is_video_ad_need ? interstitialAdManager:
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text(
+                'Let\'s Learn English',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: Colors.blueAccent,
+              elevation: 5,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48.0),
+                child: Container(
+                  color: const Color.fromARGB(255, 36, 151, 208),
+                  child: TabBar(
+                    tabs: const [
+                      Tab(text: 'Verbs'),
+                      Tab(text: 'Dictations'),
+                    ],
+                    indicatorColor: Colors.white,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey[300],
+                    indicatorWeight: 4.0,
+                  ),
+                ),
+              ),
+            ),
+            bottomNavigationBar: const BottomAppBar(
+              color: Color.fromARGB(255, 36, 151, 208),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: BannerAdWidget(), // BannerAdWidget instance
+                ),
+              ]),
+            ),
+            drawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  const DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Colors.lightBlueAccent,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundImage:
+                              AssetImage('assets/logo.png'), // Image asset
+                        ),
+                        SizedBox(width: 16),
+                        Text(
+                          'EK AppZone',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text(
+                      "EK App Zone is a forward-thinking digital solution company in Sri Lanka...",
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        adTrigger = true;
+                        adHandlerKey.currentState?.showInterstitialAd();
+                      });
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.email),
+                    title: const Text('Ekappzone@gmail.com'),
+                    onTap: () async {
+                      final Uri emailLaunchUri = Uri(
+                        scheme: 'mailto',
+                        path: 'ekappzone@gmail.com',
+                        query: encodeQueryParameters(
+                          {'subject': 'Contact from EK App Zone'},
+                        ),
+                      );
+
+                      try {
+                        // Check if the email client can be launched
+                        if (await launchUrl(emailLaunchUri)) {
+                          // Launch the email client
+                          await launchUrl(emailLaunchUri);
+                        } else {
+                          throw 'Could not launch $emailLaunchUri';
+                        }
+                      } catch (e) {
+                        // Handle the error (optional: you might want to show a dialog or a snackbar)
+                        print(e.toString());
+                        InterstitialAdHandler();
+                      }
+
+                      // Close the drawer
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.location_city),
+                    title: const Text("Sri Lanka"),
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          "Notification Settings",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        Slider(
+                          value: delayMinutes,
+                          thumbColor: const Color.fromARGB(255, 3, 31, 80),
+                          min: 1.0,
+                          max: 480.0,
+                          divisions: 480,
+                          label: '${delayMinutes.round()} min',
+                          onChanged: (newValue) {
+                            updateDelay(newValue);
+                          },
+                          onChangeEnd: (double value) {
+                            setState(() {
+                              adTrigger = true;
+                              adHandlerKey.currentState?.showInterstitialAd();
+                            });
+
+                            print(
+                                "Interstitial ad triggered from drawer >>>>>>>>>");
+                          },
+                        ),
+                        SizedBox(
+                          child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Text(
+                                  "Background Notifications",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Switch(
+                                  value: isBackgroundServiceOn,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      isBackgroundServiceOn = value;
+
+                                      print(
+                                          "<<<<<isBackgroundServiceOn>>>>>>>$isBackgroundServiceOn>>>>>>>");
+                                    });
+                                  },
+                                ),
+                              ]),
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: const [
+                VerbListScreen(),
+                DictationsScreen(),
+              ],
+            ),
+          )),
+    ]);
   }
 }
 
@@ -288,7 +339,7 @@ class VerbListScreenState extends State<VerbListScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(4.0),
+      padding: const EdgeInsets.all(1.0),
       child: Column(
         children: [
           TextField(
@@ -350,62 +401,62 @@ class VerbListScreenState extends State<VerbListScreen> {
                     itemCount: filteredVerbs.length,
                     itemBuilder: (context, index) {
                       final verb = filteredVerbs[index];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                verb['base form in English'] ?? '',
-                                textAlign: TextAlign.start,
+                      return Container(
+                        color: const Color.fromARGB(255, 192, 223, 246),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 10.0,
+                                  right: 10.0,
+                                  top: 5.0,
+                                  bottom: 5.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Text(
+                                    verb['base form in English'] ?? '',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 15.0),
+                                  ),
+                                  Text(verb['past form in English'] ?? '',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 15.0)),
+                                  Text(
+                                      verb['past participle form in English'] ??
+                                          '',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 15.0)),
+                                ],
                               ),
-                              Text(
-                                verb['past form in English'] ?? '',
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                verb['past participle form in English'] ?? '',
-                                textAlign: TextAlign.right,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                verb['base form in Sinhala'] ?? '',
-                                textAlign: TextAlign.start,
-                              ),
-                              Text(
-                                verb['past form in Sinhala'] ?? '',
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                verb['past participle form in Sinhala'] ?? '',
-                                textAlign: TextAlign.right,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                verb['base note'] ?? '',
-                                textAlign: TextAlign.start,
-                              ),
-                              Text(
-                                verb['past note'] ?? '',
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                verb['past participle note'] ?? '',
-                                textAlign: TextAlign.right,
-                              ),
-                            ],
-                          ),
-                          const Divider(),
-                        ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Text(verb['base form in Sinhala'] ?? '',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 10.0,
+                                        fontWeight: FontWeight.bold)),
+                                Text(verb['past form in Sinhala'] ?? '',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 10.0,
+                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                    verb['past participle form in Sinhala'] ??
+                                        '',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 10.0,
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const Divider(),
+                          ],
+                        ),
                       );
                     },
                   ),

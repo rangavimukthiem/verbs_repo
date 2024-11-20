@@ -1,51 +1,12 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'dart:async';
 
-double delayMinutes = 2.0;
-
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-void setupNotificationChannel() async {
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'hourly_verb_channel', // id
-    'Foreground Service Notifications', // name
-    description: 'This channel is used for foreground service notifications.',
-    importance: Importance.high,
-    enableVibration: true,
-    playSound: true,
-  );
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const InitializationSettings initializationSettings =
-      InitializationSettings(android: initializationSettingsAndroid);
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-}
-
-void initNotifications(double delay, bool isBackgroundServiceStatus) {
-  delayMinutes = delay;
-
-  if (isBackgroundServiceStatus) {
-    initializeBackgroundService();
-  } else {
-    HourlyNotification().scheduleHourlyNotification();
-  }
-}
-
-void initializeBackgroundService() async {
+void initializeService() async {
   FlutterBackgroundService service = FlutterBackgroundService();
 
   await service.configure(
@@ -53,7 +14,10 @@ void initializeBackgroundService() async {
       onStart: onStart,
       autoStart: true,
       isForegroundMode: true,
-      notificationChannelId: "hourly_verb_channel",
+      // initialNotificationTitle: "Hourly verb",
+      initialNotificationContent: "Service is running in the background",
+      autoStartOnBoot: true,
+      // notificationChannelId: "hourly_verb_channel",
     ),
     iosConfiguration: IosConfiguration(
       onForeground: onStart,
@@ -64,25 +28,34 @@ void initializeBackgroundService() async {
   await service.startService();
 }
 
+// Background Service Function
 void onStart(ServiceInstance service) async {
-  Timer.periodic(Duration(minutes: 3 ?? 10), (timer) async {
+  final hourlyNotification = HourlyNotification();
+
+  // Ensure background service runs indefinitely with hourly notifications
+  Timer.periodic(const Duration(minutes: 1), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
-        final hourlyNotification = HourlyNotification();
-        await hourlyNotification.scheduleHourlyNotification();
+        hourlyNotification.scheduleHourlyNotification();
       }
     }
   });
 }
 
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>old notification class
 class HourlyNotification {
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  Duration delayDuration = const Duration(minutes: 1);
+
   HourlyNotification() {
     _initializeNotifications();
   }
 
   void _initializeNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings(
+            '@mipmap/ic_launcher'); // Use your app icon
 
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
@@ -90,19 +63,25 @@ class HourlyNotification {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
+  void setDelayDuration(Duration duration) {}
+
   Future<void> scheduleHourlyNotification() async {
     var verbs = await _loadExcelData();
     if (verbs.isNotEmpty) {
-      var verb = _getRandomVerb(verbs);
-      await _showNotification(verb);
+      var randomVerb = _getRandomVerb(verbs);
+
+      await _showNotification(randomVerb);
     }
+
+    // Schedule this function to run again after 1 hour
+    await Future.delayed(delayDuration, scheduleHourlyNotification);
   }
 
   Future<void> _showNotification(Map<String, String> verb) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'hourly_verb_channel',
-      'Hourly Verb',
+      'hourly_verb_channel', // Channel ID
+      'Hourly Verb', // Channel Name
       channelDescription: 'Notification channel for hourly verb',
       importance: Importance.high,
       priority: Priority.high,
@@ -110,16 +89,15 @@ class HourlyNotification {
       color: Colors.cyan,
       ongoing: true,
       autoCancel: false,
-      channelShowBadge: true,
-      enableVibration: true,
+      chronometerCountDown: true,
+      colorized: true,
     );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
-      0,
+      0, // Notification ID
       'Hourly Verb: ${verb['base form in Sinhala']}',
       '${verb['base form in English']} - ${verb['past form in English']} - ${verb['past participle form in English']}',
       platformChannelSpecifics,
@@ -129,6 +107,7 @@ class HourlyNotification {
 
   Future<List<Map<String, String>>> _loadExcelData() async {
     List<Map<String, String>> verbs = [];
+
     ByteData data = await rootBundle.load('assets/irregular_verbs.xlsx');
     var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     var excel = Excel.decodeBytes(bytes);
